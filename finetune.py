@@ -25,6 +25,8 @@ model = AutoModelForCausalLM(
     device_map={"": 0}
 )
 
+
+
 model.config.use_cache = False
 model.config.pretraining_tp = 1
 
