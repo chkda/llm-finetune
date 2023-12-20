@@ -5,7 +5,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from peft import LoraConfig
 from trl import SFTTrainer
 
-base_model = "meta-llama/Llama-2-7b-chat-hf"
+base_model = "NousResearch/Llama-2-7b-chat-hf"
 guanco_dataset = "mlabonne/guanaco-llama2-1k"
 new_model = "llama-2-7b-chat-guanaco"
 
@@ -19,7 +19,7 @@ quant_config = BitsAndBytesConfig(
     bnb_4bit_use_double_quant=False,
 )
 
-model = AutoModelForCausalLM(
+model = AutoModelForCausalLM.from_pretrained(
     base_model,
     quantization_config=quant_config,
     device_map={"": 0}
