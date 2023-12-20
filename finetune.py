@@ -5,7 +5,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from peft import LoraConfig
 from trl import SFTTrainer
 
-base_model = "NousResearch/Llama-2-7b-chat-hf"
+base_model = "JackFram/llama-160m"
 guanco_dataset = "mlabonne/guanaco-llama2-1k"
 new_model = "llama-2-7b-chat-guanaco"
 
@@ -44,18 +44,18 @@ peft_params = LoraConfig(
 
 training_params = TrainingArguments(
     output_dir="./results",
-    num_train_epochs=1,
+    num_train_epochs=100,
     per_device_train_batch_size=4,
     gradient_accumulation_steps=1,
     optim="paged_adamw_32bit",
     save_steps=25,
-    logging_steps=5,
+    logging_steps=25,
     learning_rate=2e-4,
     weight_decay=0.001,
     fp16=False,
     bf16=False,
     max_grad_norm=0.3,
-    max_steps=-1,
+    max_steps=-100,
     warmup_ratio=0.03,
     group_by_length=True,
     lr_scheduler_type="constant",
