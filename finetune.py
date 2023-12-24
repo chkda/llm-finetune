@@ -1,15 +1,18 @@
 import os
+import time
+import wandb
 import torch
 from datasets import load_dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, TrainingArguments, pipeline, logging
 from peft import LoraConfig
 from trl import SFTTrainer
 
-base_model = "JackFram/llama-160m"
-guanco_dataset = "mlabonne/guanaco-llama2-1k"
-new_model = "llama-2-7b-chat-guanaco"
+base_model = "NousResearch/Llama-2-7b-chat-hf"
+dataset = "OdiaGenAI/odia_context_10K_llama2_set"
+new_model = "odia-llama-7b"
+repo = "Chhaya/odia-llama-7b"
 
-dataset = load_dataset(guanco_dataset, split="train")
+dataset = load_dataset(dataset, split="train")
 
 compute_dtype = getattr(torch, "float16")
 quant_config = BitsAndBytesConfig(
@@ -41,13 +44,29 @@ peft_params = LoraConfig(
     bias="none",
     task_type="CAUSAL_LM"
 )
+run_name = f"odia-llama-{int(time.time())}"
+
+wandb.init(
+    # set the wandb project where this run will be logged
+    project="odia-llama-finetune",
+    
+    # track hyperparameters and run metadata
+    config={
+    "learning_rate": 2e-4,
+    "architecture": base_model,
+    "dataset": dataset,
+    "epochs": 1,
+    },
+    name=run_name
+)
+
 
 training_params = TrainingArguments(
-    output_dir="./results",
-    num_train_epochs=100,
+    output_dir=repo,
+    num_train_epochs=1,
     per_device_train_batch_size=4,
     gradient_accumulation_steps=1,
-    optim="paged_adamw_32bit",
+    optim="paged_adamw_8bit",
     save_steps=25,
     logging_steps=25,
     learning_rate=2e-4,
@@ -55,11 +74,12 @@ training_params = TrainingArguments(
     fp16=False,
     bf16=False,
     max_grad_norm=0.3,
-    max_steps=-100,
+    max_steps=-1,
     warmup_ratio=0.03,
     group_by_length=True,
     lr_scheduler_type="constant",
-    report_to="tensorboard"
+    report_to="tensorboard",
+    push_to_hub=True
 )
 
 trainer = SFTTrainer(
@@ -75,12 +95,15 @@ trainer = SFTTrainer(
 
 trainer.train()
 
-trainer.model.save_pretrained(new_model)
-trainer.tokenizer.save_pretrained(new_model)
+trainer.model.save_pretrained(repo)
+trainer.tokenizer.save_pretrained(repo)
+
+trainer.push_to_hub()
+
 
 logging.set_verbosity(logging.CRITICAL)
 
-prompt = "Who is Leonardo Da Vinci?"
+prompt = "ଓଡ଼ିଶାରେ ଇକୋ-ଟୁରିଜିମକୁ ଆମେ କିପରି ପ୍ରୋତ୍ସାହିତ କରିପାରିବା?"
 pipe = pipeline(task="text-generation", model=model, tokenizer=tokenizer, max_length=200)
 result = pipe(f"<s>[INST] {prompt} [/INST]")
 print(result[0]['generated_text'])
